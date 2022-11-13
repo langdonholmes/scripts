@@ -1,0 +1,43 @@
+from pathlib import Path
+from tqdm.auto import tqdm
+import typer
+
+import spacy
+from spacy.tokens import Doc, DocBin
+    
+def get_docs(texts,
+             out_file,
+             model_name = 'en_core_web_trf',
+             id_text_tuples = True,
+             gpu = True):
+    '''
+    nlp: a spacy model
+    texts: an iterable of (name, text documents) tuples or just text_documents
+    out_file: the destination of the DocBin
+    returns --> a list of docs, pulled from DocBin or generated via spacy pipeline    
+    '''
+    
+    nlp = spacy.load(model_name)
+    out_file = Path(out_file)
+    
+    if not Doc.has_extension('name'):
+        Doc.set_extension('name', default=None)
+    if not 'doc_cleaner' in nlp.pipe_names:
+        nlp.add_pipe('doc_cleaner')
+    
+    db = DocBin(store_user_data=True)
+        
+    if out_file.exists():
+        print('Retrieving from existing Docbin file')
+        db = db.from_disk(out_file)
+    else:
+        print('Creating new Docbin file')
+        for doc, name in tqdm(nlp.pipe(texts, as_tuples=id_text_tuples), total=len(texts)):
+            doc._.name = name
+            db.add(doc)
+        db.to_disk(out_file)
+        
+    return list(tqdm(db.get_docs(nlp.vocab), total=len(texts)))
+
+if __name__ == "__main__":
+    typer.run(get_docs)
