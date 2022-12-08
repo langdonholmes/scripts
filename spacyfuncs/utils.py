@@ -1,9 +1,21 @@
 import re
 from tqdm.auto import tqdm
 
+import spacy
 from spacy_alignments import get_alignments
 from spacy.tokens import Span
 nlp = spacy.blank("en")
+
+def fix_whitespace(text):
+    '''Replace all contiguous whitespace sequences with either a single space or a single linebreak.'''
+    
+    linebreaks = re.compile('\s*[\r\n\f\v]+\s*') # one or more linebreaks and any surrounding whitespace
+    not_linebreaks = re.compile('[ \t]+') # one or more whitespace that is not a linebreak
+    
+    return re.sub(not_linebreaks, ' ',
+                      re.sub(linebreaks, '\n',
+                             text)
+                     )
 
 def align_ents(docs,
                clean_func,
