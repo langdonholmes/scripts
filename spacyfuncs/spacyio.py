@@ -4,7 +4,7 @@ import typer
 
 import spacy
 from spacy.tokens import Doc, DocBin
-from .extensions import *
+from .extensions import line_annotator
     
 def get_docs(texts,
              out_file,

@@ -5,9 +5,6 @@ from tqdm.auto import tqdm
 import spacy
 from spacy.tokens import DocBin
 
-'~/shared/2022_07_08_deidentification_spacy_project/training/longformer-domain-adapted/'
-'../data/longformer-labeled.spacy'
-
 def main(model_loc, in_bin, out_bin):
     nlp = spacy.load(model_loc)
     
@@ -23,7 +20,6 @@ def main(model_loc, in_bin, out_bin):
           )
         .to_disk(out_bin)
     )
-
 
 if __name__ == "__main__":
     typer.run(main)
