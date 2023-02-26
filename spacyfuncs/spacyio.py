@@ -1,5 +1,6 @@
 import warnings
 from pathlib import Path
+from typing import Iterable, List
 
 import spacy
 import srsly
@@ -14,7 +15,7 @@ nlp = spacy.blank('en')
 app = typer.Typer()
 
 
-def _to_docbin(docs: iter[Doc], out_path: Path) -> None:
+def _to_docbin(docs: Iterable[Doc], out_path: Path) -> None:
     '''Helper function that sends an iterable of docs to a DocBin on disk
     '''
     db = DocBin(store_user_data=True)
@@ -22,7 +23,7 @@ def _to_docbin(docs: iter[Doc], out_path: Path) -> None:
         db.add(doc)
     db.to_disk(Path(out_path))
     
-def _convert(text_lines: iter[dict]) -> iter[Doc]:
+def _convert(text_lines: Iterable[dict]) -> Iterable[Doc]:
     '''Convert entity annotation from Doccano format to spaCy v3 .spacy format.
     '''
     for line in text_lines:
@@ -42,12 +43,12 @@ def _convert(text_lines: iter[dict]) -> iter[Doc]:
         yield doc
         
 @app.command()
-def get_docs(texts: iter = typer.Argument(..., help='An iterable of (name, text) tuples or just text tuples'),
+def get_docs(texts: Iterable = typer.Argument(..., help='An iterable of (name, text) tuples or just text tuples'),
              out_file: str = typer.Argument(..., help='The location of the DocBin'),
              model_name: str = typer.Argument('en_core_web_trf', help='The name of the spacy model'),
-             additional_components: list[str] = typer.Argument([], help='Additional components to add to the spaCy pipeline'),
+             additional_components: Iterable[str] = typer.Argument([], help='Additional components to add to the spaCy pipeline'),
              id_text_tuples: bool = typer.Argument(True, help='Whether the texts are tuples of iter[tuple[name, text]]. If False, texts is iter[text].'),
-             ) -> list[Doc]:
+             ) -> List[Doc]:
     '''Creates a DocBin file from a list of texts.'''
     
     out_path = Path(out_file)
