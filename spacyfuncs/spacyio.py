@@ -78,6 +78,7 @@ def get_docs(texts: Iterable = typer.Argument(..., help='An iterable of (name, t
 
 @app.command()
 def convert(in_file: str = typer.Argument(..., help='The location of the jsonl file'),
+            out_location: str = typer.Argument(..., help='Where to put the created DocBin/s'),
             train_percent: int = typer.Argument(0, help='The percentage of the data to use for training. Set to 0 to skip splitting data.'),
             ) -> None:
     '''Converts a jsonl file to a train/dev/test split of .spacy files.
@@ -98,11 +99,16 @@ def convert(in_file: str = typer.Argument(..., help='The location of the jsonl f
         warnings.warn("Unknown filetype. '.spacy' and '.jsonl' are supported.")
         return
     
-    train, _remains = train_test_split(docs, train_size=train_percent/100, random_state=0)
-    dev, test = train_test_split(_remains, train_size=0.5, random_state=0)
-    _to_docbin(train, 'corpus/train.spacy')
-    _to_docbin(dev, 'corpus/dev.spacy')
-    _to_docbin(test, 'corpus/test.spacy')
+    out_path = Path(out_location)
+    
+    if train_percent == 0:
+        _to_docbin(docs, out_path)
+    else:
+        train, _remains = train_test_split(docs, train_size=train_percent/100, random_state=0)
+        dev, test = train_test_split(_remains, train_size=0.5, random_state=0)
+        _to_docbin(train, out_path / 'train.spacy')
+        _to_docbin(dev, out_path / 'dev.spacy')
+        _to_docbin(test, out_path / 'test.spacy')
     
 if __name__ == "__main__":
     app()
