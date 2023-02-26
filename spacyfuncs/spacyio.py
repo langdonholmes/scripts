@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Iterable, List
 from collections import namedtuple
 
-import spacy
-import srsly
 import typer
+import srsly
+import spacy
 from spacy.tokens import Doc, DocBin
 from tqdm.auto import tqdm
 
@@ -14,6 +14,7 @@ if not Doc.has_extension('name'):
 nlp = spacy.blank('en')
 
 JsonKeys = namedtuple('JsonKeys', ['id', 'text', 'labels'])
+LabelKeys = namedtuple('LabelKeys', ['label', 'start', 'end'])
 
 app = typer.Typer()
 
@@ -25,23 +26,36 @@ def _to_docbin(docs: Iterable[Doc], out_path: Path) -> None:
         db.add(doc)
     db.to_disk(Path(out_path))
     
-def _convert(text_lines: Iterable[dict], keys: JsonKeys) -> Iterable[Doc]:
+def _convert(text_lines: Iterable[dict], line_keys: JsonKeys) -> Iterable[Doc]:
     '''Convert entity annotation from Doccano format to spaCy v3 .spacy format.
     '''
+    
+    label_keys = LabelKeys('label', 'start_offset', 'end_offset')
+    
     for line in text_lines:
-        text = line[keys.text]
-        doc = nlp.make_doc(text)
-        doc._.name = line[keys.id]
+
+        doc = nlp.make_doc(line[line_keys.text])
+        doc._.name = line[line_keys.id]
+        
         ents = []
-        for start, end, label in line[keys.labels]:
-            span = doc.char_span(start, end, label=label, alignment_mode="strict")
+        for label in line[line_keys.labels]:
+            
+            start = label[label_keys.start]
+            end = label[label_keys.end]
+            label_name = label[label_keys.label]
+            
+            span = doc.char_span(start, end, label=label_name, alignment_mode="strict")
+            
             if span is None:
-                msg = f"Document: {line[keys.id]}\nEntity [{start}, {end}, {label}] does not align with token boundaries.\nOriginal entity was '{doc.text[start:end]}'"
-                span = doc.char_span(start, end, label=label, alignment_mode="expand")
+                msg = f"Document: {line[line_keys.id]}\nEntity [{start}, {end}, {label_name}] does not align with token boundaries.\nOriginal entity was '{doc.text[start:end]}'"
+                span = doc.char_span(start, end, label=label_name, alignment_mode="expand")
                 msg += f"\nAttempting to set entity as '{span}'"
                 warnings.warn(msg)
+                
             ents.append(span)
-        doc.ents = ents
+            
+        doc.ents = spacy.util.filter_spans(ents)
+        
         yield doc
         
 @app.command()
